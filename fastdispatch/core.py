@@ -8,8 +8,7 @@ from fastcore.utils import *
 from plum import Function, Dispatcher
 
 # %% auto 0
-__all__ = ['dispatch', 'FastFunction', 'FastDispatcher', 'retain_meta', 'default_set_meta', 'cast', 'retain_type', 'retain_types',
-           'explode_types']
+__all__ = ['dispatch', 'FastFunction', 'FastDispatcher', 'retain_meta', 'cast', 'retain_type', 'retain_types', 'explode_types']
 
 # %% ../00_core.ipynb 7
 def _eval_annotations(f):
@@ -33,6 +32,7 @@ def _pt_repr(o):
 
 # %% ../00_core.ipynb 12
 class FastFunction(Function):
+    "Multiple dispatched function; extends `plum.Function`"
     def __repr__(self):
         return '\n'.join(f"{f.__name__}({','.join(_pt_repr(t) for t in s.types)}) -> {_pt_repr(r)}"
                          for s, (f, r) in self.methods.items())
@@ -51,8 +51,9 @@ class FastFunction(Function):
         while len(ts) < nargs: ts.append(object)
         return self.invoke(*ts)
 
-# %% ../00_core.ipynb 21
+# %% ../00_core.ipynb 20
 class FastDispatcher(Dispatcher):
+    "Namespace for multiple dispatched functions; extends `plum.Dispatcher`"
     def _get_function(self, method, owner):
         "Adapted from `Dispatcher._get_function` to use `FastFunction`"
         name = method.__name__
@@ -63,8 +64,9 @@ class FastDispatcher(Dispatcher):
         if name not in namespace: namespace[name] = FastFunction(method, owner=owner)
         return namespace[name]
 
-    @delegates(Dispatcher.__call__, but='method')
-    def __call__(self, f, **kwargs): return super().__call__(_eval_annotations(f), **kwargs)
+    def __call__(self, f, precedence=0):
+        "Decorator for a particular signature"
+        return super().__call__(_eval_annotations(f), precedence)
 
 dispatch = FastDispatcher()
 
@@ -106,27 +108,18 @@ def retain_meta(x, res, as_copy=False):
     return res
 
 # %% ../00_core.ipynb 40
-def default_set_meta(self, x, as_copy=False):
-    "Copy over `_meta` from `x` to `res`, if it's missing"
-    if hasattr(x, '_meta') and not hasattr(self, '_meta'):
-        meta = x._meta
-        if as_copy: meta = copy(meta)
-        self._meta = meta
-    return self
-
-# %% ../00_core.ipynb 41
 @dispatch
 def cast(x, typ):
-    "cast `x` to type `typ` (may also change `x` inplace)"
-    res = typ._before_cast(x) if hasattr(typ, '_before_cast') else x
-    if risinstance('ndarray', res): res = res.view(typ)
-    elif hasattr(res, 'as_subclass'): res = res.as_subclass(typ)
+    "Cast `x` to `typ` (may change `x` inplace)"
+    res = typ._before_cast(x) if hasattr(typ,'_before_cast') else x
+    if risinstance('ndarray',res):   res = res.view(typ)
+    elif hasattr(res,'as_subclass'): res = res.as_subclass(typ)
     else:
         try: res.__class__ = typ
         except: res = typ(res)
     return retain_meta(x, res)
 
-# %% ../00_core.ipynb 47
+# %% ../00_core.ipynb 46
 def retain_type(new, old=None, typ=None, as_copy=False):
     "Cast `new` to type of `old` or `typ` if it's a superclass"
     # e.g. old is TensorImage, new is Tensor - if not subclass then do nothing

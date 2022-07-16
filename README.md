@@ -17,14 +17,19 @@ functionality here will be moved into plum.
 
 ## How to use
 
-`fastdispatch` works just like plum. Here’s an example to start with,
-however we’d recommend reading through their [very informative
-docs](https://github.com/wesselb/plum):
+`fastdispatch` works just like plum, with a few extensions. We recommend
+reading through their [very informative
+docs](https://github.com/wesselb/plum), however, here’s a quick example
+to get started:
 
 ``` python
 from fastcore.test import test_fail
 from fastdispatch import *
 ```
+
+Decorate type annotated Python functions with `fastdispatch.dispatch` to
+add them as *methods* to a dispatched *function* (following [Julia’s
+terminology](https://docs.julialang.org/en/v1/manual/methods/)):
 
 ``` python
 @dispatch
@@ -47,6 +52,8 @@ f(1)
 ```
 
     'This is an integer!'
+
+If there’s no matching method, `plum.NotFoundLookupError` is raised:
 
 ``` python
 test_fail(lambda: f(1.0), contains='For function "f", signature Signature(builtins.float) could not be resolved.')
