@@ -33,12 +33,10 @@ terminology](https://docs.julialang.org/en/v1/manual/methods/)):
 
 ``` python
 @dispatch
-def f(x: str):
-    return "This is a string!"
+def f(x: str): return "This is a string!"
 
 @dispatch
-def f(x: int):
-    return "This is an integer!"
+def f(x: int): return "This is an integer!"
 ```
 
 ``` python
