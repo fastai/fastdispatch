@@ -49,5 +49,5 @@ f(1)
     'This is an integer!'
 
 ``` python
-test_fail(lambda: f(1.0), contains='For function "f", signature Signature(float) could not be resolved.')
+test_fail(lambda: f(1.0), contains='For function "f", signature Signature(builtins.float) could not be resolved.')
 ```
