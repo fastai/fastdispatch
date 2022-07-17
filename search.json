@@ -1,0 +1,23 @@
+[
+  {
+    "objectID": "core.html",
+    "href": "core.html",
+    "title": "core",
+    "section": "",
+    "text": "fastdispatch extends the wonderful plum’s Julia-inspired implementation of multiple dispatch for Python."
+  },
+  {
+    "objectID": "core.html#casting",
+    "href": "core.html#casting",
+    "title": "core",
+    "section": "Casting",
+    "text": "Casting\nNow that we can dispatch on types, let’s make it easier to cast objects to a different type.\n\n\nretain_meta\n\n retain_meta (x, res, as_copy=False)\n\nCall res.set_meta(x), if it exists\n\n\n\ncast\n\n cast (x, typ)\n\nCast x to typ (may change x inplace)\nThis works both for plain python classes:…\nmk_class('_T1', 'a')      # mk_class is a fastcore utility that constructs a class\nclass _T2(_T1): pass\n\nt = _T1(a=1)\nt2 = cast(t, _T2)        \nassert t2 is t            # t2 refers to the same object as t\nassert isinstance(t,_T2)  # t also changed in-place\nassert isinstance(t2,_T2)\n\ntest_eq_type(_T2(a=1), t2)\n…as well as for arrays and tensors.\nclass _T1(np.ndarray): pass\n\nt = np.array([1])\nt2 = cast(t, _T1)\ntest_eq(np.array([1]), t2)\ntest_eq(_T1, type(t2))\nTo customize casting for other types, define a separate cast function with dispatch for your type.\n\n\nretain_type\n\n retain_type (new, old=None, typ=None, as_copy=False)\n\nCast new to type of old or typ if it’s a superclass\nclass _T(tuple): pass\na = _T((1,2))\nb = tuple((1,2))\nc = retain_type(b, typ=_T)\ntest_eq_type(c, a)\nIf old has a _meta attribute, its content is passed when casting new to the type of old. In the below example, only the attribute a, but not other_attr is kept, because other_attr is not in _meta:\ndef default_set_meta(self, x, as_copy=False):\n    \"Copy over `_meta` from `x` to `res`, if it's missing\"\n    if hasattr(x, '_meta') and not hasattr(self, '_meta'):\n        meta = x._meta\n        if as_copy: meta = copy(meta)\n        self._meta = meta\n    return self\nclass _A():\n    set_meta = default_set_meta\n    def __init__(self, t): self.t=t\n\nclass _B1(_A):\n    def __init__(self, t, a=1):\n        super().__init__(t)\n        self._meta = {'a':a}\n        self.other_attr = 'Hello' # will not be kept after casting.\n        \nx = _B1(1, a=2)\nb = _A(1)\nc = retain_type(b, old=x)\ntest_eq(c._meta, {'a': 2})\nassert not getattr(c, 'other_attr', None)\n\n\n\nretain_types\n\n retain_types (new, old=None, typs=None)\n\nCast each item of new to type of matching item in old if it’s a superclass\nclass T(tuple): pass\n\nt1,t2 = retain_types((1,(1,(1,1))), (2,T((2,T((3,4))))))\ntest_eq_type(t1, 1)\ntest_eq_type(t2, T((1,T((1,1)))))\n\nt1,t2 = retain_types((1,(1,(1,1))), typs = {tuple: [int, {T: [int, {T: [int,int]}]}]})\ntest_eq_type(t1, 1)\ntest_eq_type(t2, T((1,T((1,1)))))\n\n\n\nexplode_types\n\n explode_types (o)\n\nReturn the type of o, potentially in nested dictionaries for thing that are listy\ntest_eq(explode_types((2,T((2,T((3,4)))))), {tuple: [int, {T: [int, {T: [int,int]}]}]})"
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "fastdispatch",
+    "section": "",
+    "text": "Wrapper for plum dispatch to make it more compatible with fastcore’s typedispatch. Hopefully this is just temporary, and instead the functionality here will be moved into plum.\n\n\npip install fastdispatch\n\n\n\nfastdispatch works just like plum, with a few extensions. We recommend reading through their very informative docs, however, here’s a quick example to get started:\nfrom fastcore.test import *\nfrom fastdispatch import *\nDecorate type annotated Python functions with fastdispatch.dispatch to add them as methods to a dispatched function (following Julia’s terminology):\n@dispatch\ndef f(x: str): return \"This is a string!\"\n\n@dispatch\ndef f(x: int): return \"This is an integer!\"\n\nf('1')\n\n'This is a string!'\n\n\n\nf(1)\n\n'This is an integer!'\n\n\nIf there’s no matching method, plum.NotFoundLookupError is raised:\ntest_fail(lambda: f(1.0), contains='For function \"f\", signature Signature(builtins.float) could not be resolved.')"
+  }
+]
